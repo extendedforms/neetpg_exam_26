@@ -4,8 +4,6 @@
 window.questions = [
   // ===== Set 1 =====
 
-
-[
   {
     id: 1,
     image: "images/IMG_0980.jpeg",
