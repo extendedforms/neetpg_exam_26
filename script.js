@@ -26,6 +26,19 @@ let state = null;
 const el = (id) => document.getElementById(id);
 function nowMs(){ return Date.now(); }
 
+function nowIST(){
+  return new Date().toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true
+  });
+}
+
 function initState() {
   const saved = localStorage.getItem(LS_KEY);
   if (saved) {
@@ -191,7 +204,7 @@ async function captureScreenshot(){
     if (typeof html2canvas === "undefined") return;
     const canvas = await html2canvas(document.body, {useCORS:true, logging:false, scale:1});
     const dataUrl = canvas.toDataURL("image/jpeg", 0.55);
-    state.violationShots.push({ at: new Date().toISOString(), dataUrl });
+    state.violationShots.push({ at: nowIST(), dataUrl });
     saveState();
   }catch{}
 }
@@ -289,7 +302,7 @@ async function submitExam(reason="Submitted"){
   state.result = {
     reason,
     ...result,
-    submittedAt: new Date().toISOString(),
+    submittedAt: nowIST(),
     violations: state.violations
   };
 
