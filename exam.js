@@ -9,6 +9,7 @@
   ✅ FIX: iPhone Fullscreen overlay should NOT count as violation
   ✅ FIX: Wrong answers marking (MARKS_WRONG = -1 works correctly)
   ✅ FIX: Login/refresh should NOT reset timer or violations (per-candidate+window key)
+  ✅ FIX: startedAt / endedAt sent as exact Indian time using Asia/Kolkata
 ***********************/
 
 function safeParse(s){ try{ return JSON.parse(s) }catch{ return null } }
@@ -34,6 +35,33 @@ function canCountViolation(){
 }
 const IS_IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
+// ====== Exact Indian Time helper ======
+function formatIndianTime(dateOrMs = Date.now()){
+  const d = typeof dateOrMs === "number" ? new Date(dateOrMs) : dateOrMs;
+
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true
+  }).formatToParts(d);
+
+  const get = (type) => parts.find(p => p.type === type)?.value || "";
+  const day = get("day");
+  const month = get("month");
+  const year = get("year");
+  const hour = get("hour");
+  const minute = get("minute");
+  const second = get("second");
+  const dayPeriod = (get("dayPeriod") || "").toUpperCase();
+
+  return `${day}-${month}-${year} ${hour}:${minute}:${second} ${dayPeriod}`;
+}
+
 // ====== IST Header (clock + schedule) ======
 const istClock   = document.getElementById("istClock");
 const examStartEl= document.getElementById("examStartIST");
@@ -43,15 +71,27 @@ if (istClock && window.formatIST) {
   const tickIST = () => { istClock.textContent = window.formatIST(Date.now()); };
   tickIST();
   setInterval(tickIST, 1000);
+} else if (istClock) {
+  const tickIST = () => { istClock.textContent = formatIndianTime(Date.now()); };
+  tickIST();
+  setInterval(tickIST, 1000);
 }
 
 if (examStartEl && Number.isFinite(window.EXAM_START_MS) && window.formatIST) {
   examStartEl.textContent = window.formatIST(window.EXAM_START_MS);
-} else if (examStartEl) examStartEl.textContent = "--";
+} else if (examStartEl && Number.isFinite(window.EXAM_START_MS)) {
+  examStartEl.textContent = formatIndianTime(window.EXAM_START_MS);
+} else if (examStartEl) {
+  examStartEl.textContent = "--";
+}
 
 if (examEndEl && Number.isFinite(window.EXAM_END_MS) && window.formatIST) {
   examEndEl.textContent = window.formatIST(window.EXAM_END_MS);
-} else if (examEndEl) examEndEl.textContent = "--";
+} else if (examEndEl && Number.isFinite(window.EXAM_END_MS)) {
+  examEndEl.textContent = formatIndianTime(window.EXAM_END_MS);
+} else if (examEndEl) {
+  examEndEl.textContent = "--";
+}
 
 // ====== Exam Window Lock (IST) ======
 function inWindow(now = Date.now()){
@@ -204,9 +244,12 @@ function updateTimer(){
   const elapsed = Date.now() - state.startedAt;
   const left = Math.max(0, durationMs - elapsed);
 
-  const mm = Math.floor(left/60000);
-  const ss = Math.floor((left%60000)/1000);
-  if (elTime) elTime.textContent = `${pad2(mm)}:${pad2(ss)}`;
+  const totalSec = Math.floor(left / 1000);
+  const hh = Math.floor(totalSec / 3600);
+  const mm = Math.floor((totalSec % 3600) / 60);
+  const ss = totalSec % 60;
+
+  if (elTime) elTime.textContent = `${pad2(hh)}:${pad2(mm)}:${pad2(ss)}`;
 
   if(left <= 0) submitExam(true, "DURATION_ENDED");
 }
@@ -491,8 +534,8 @@ async function submitExam(isAuto=false, reason="SUBMIT"){
       wrong: r.wrong,
       unattempted: r.unattempted,
       timeTakenSec: r.timeTakenSec,
-      startedAt: state.startedAt,
-      endedAt: Date.now(),
+      startedAt: formatIndianTime(state.startedAt),
+      endedAt: formatIndianTime(Date.now()),
       durationMin: (window.EXAM_DURATION_MIN || 60),
       reason,
       isAuto: !!isAuto,
@@ -524,7 +567,9 @@ async function submitExam(isAuto=false, reason="SUBMIT"){
       wrong: r.wrong,
       unattempted: r.unattempted,
       timeTakenSec: r.timeTakenSec,
-      violations: state.violations || 0
+      violations: state.violations || 0,
+      startedAt: formatIndianTime(state.startedAt),
+      endedAt: formatIndianTime(Date.now())
     }));
 
     // ✅ Clear saved exam state only after success
