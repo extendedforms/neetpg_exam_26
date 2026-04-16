@@ -2470,7 +2470,7 @@ window.questions = [
     correctAnswerText: "Membranous nephropathy",
   },
   {
-    id: 173,
+    id: 174,
     image: "images/IMG_2582.jpeg",
     question:
       "A long-standing diabetic patient develops progressive proteinuria. The renal biopsy image shows nodular glomerulosclerosis with rounded eosinophilic mesangial nodules. Which is the most likely diagnosis?",
